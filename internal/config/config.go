@@ -19,7 +19,7 @@ type Config struct {
 func LoadConfig() *Config {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("Error loading .env file")
 	}
 	return &Config{
 		ServerPort:        getEnv("SERVER_PORT", "8080"),
