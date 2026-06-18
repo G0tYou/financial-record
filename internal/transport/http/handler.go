@@ -43,7 +43,7 @@ type TransactionResponse struct {
 // HandleWebhook handles the webhook from Fontee
 func (h *TransactionHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		h.sendErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
+		h.sendJSONResponse(w, http.StatusOK, "OK")
 		return
 	}
 
