@@ -31,6 +31,10 @@ func LoadConfig() *Config {
 // getEnv retrieves an environment variable or returns a default value
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
+		// Strip surrounding quotes if present
+		if len(value) >= 2 && (value[0] == '\'' || value[0] == '"') && value[0] == value[len(value)-1] {
+			return value[1 : len(value)-1]
+		}
 		return value
 	}
 	return defaultValue
