@@ -24,9 +24,9 @@ func NewTransactionHandler(transactionUseCase *usecase.TransactionUseCase) *Tran
 
 // FonteeWebhookRequest represents the webhook request from Fontee
 type FonteeWebhookRequest struct {
-	Phone    string `json:"phone"`
+	Phone    string `json:"sender"`
 	Message  string `json:"message"`
-	SenderID string `json:"sender_id,omitempty"`
+	SenderID string `json:"senderlid,omitempty"`
 }
 
 // TransactionResponse represents the response for a transaction
