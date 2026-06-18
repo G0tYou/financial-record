@@ -174,7 +174,7 @@ func (r *GoogleSheetsRepository) GetTransactions(phone string) ([]*entities.Tran
 				if rowPhone, ok := row[1].(string); ok && rowPhone == phone {
 					transaction := &entities.Transaction{
 						Phone:  rowPhone,
-						Action: entities.Action(row[2].(string)),
+						Action: row[2].(string),
 						Notes:  "",
 					}
 

@@ -14,7 +14,7 @@ const (
 type Transaction struct {
 	ID        string
 	Phone     string
-	Action    Action
+	Action    string
 	Amount    float64
 	Balance   float64
 	Timestamp time.Time
@@ -22,7 +22,7 @@ type Transaction struct {
 }
 
 // NewTransaction creates a new transaction
-func NewTransaction(phone string, action Action, amount float64, balance float64, notes string) *Transaction {
+func NewTransaction(phone string, action string, amount float64, balance float64, notes string) *Transaction {
 	return &Transaction{
 		ID:        generateID(),
 		Phone:     phone,

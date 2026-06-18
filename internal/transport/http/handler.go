@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
-	"financial-record/internal/domain/entities"
 	"financial-record/internal/usecase"
 )
 
@@ -24,9 +24,9 @@ func NewTransactionHandler(transactionUseCase *usecase.TransactionUseCase) *Tran
 
 // FonteeWebhookRequest represents the webhook request from Fontee
 type FonteeWebhookRequest struct {
-	Phone    string  `json:"phone"`
-	Message  string  `json:"message"`
-	SenderID string  `json:"sender_id,omitempty"`
+	Phone    string `json:"phone"`
+	Message  string `json:"message"`
+	SenderID string `json:"sender_id,omitempty"`
 }
 
 // TransactionResponse represents the response for a transaction
@@ -54,14 +54,14 @@ func (h *TransactionHandler) HandleWebhook(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Parse message to extract action and amount
-	action, amount, err := h.parseMessage(req.Message)
+	code, amount, description, err := h.parseMessage(req.Message)
 	if err != nil {
 		h.sendErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	// Process transaction
-	transaction, err := h.transactionUseCase.ProcessTransaction(req.Phone, action, amount, "")
+	transaction, err := h.transactionUseCase.ProcessTransaction(req.Phone, code, amount, description)
 	if err != nil {
 		h.sendErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
@@ -70,7 +70,7 @@ func (h *TransactionHandler) HandleWebhook(w http.ResponseWriter, r *http.Reques
 	// Send success response
 	response := TransactionResponse{
 		Success:   true,
-		Message:   fmt.Sprintf("Transaction successful. New balance: %.2f", transaction.Balance),
+		Message:   "Success",
 		Phone:     transaction.Phone,
 		Action:    string(transaction.Action),
 		Amount:    transaction.Amount,
@@ -138,35 +138,31 @@ func (h *TransactionHandler) HandleGetHistory(w http.ResponseWriter, r *http.Req
 }
 
 // parseMessage parses the WhatsApp message to extract action and amount
-func (h *TransactionHandler) parseMessage(message string) (entities.Action, float64, error) {
+func (h *TransactionHandler) parseMessage(message string) (string, float64, string, error) {
 	if len(message) == 0 {
-		return "", 0, fmt.Errorf("empty message")
+		return "", 0, "", fmt.Errorf("empty message")
+	} else if len(message) < 3 {
+		return "", 0, "", fmt.Errorf("invalid format")
 	}
 
-	firstChar := message[0]
-	var action entities.Action
+	parts := strings.SplitN(message, " ", 3)
 
-	switch firstChar {
-	case '+':
-		action = entities.ActionAdd
-	case '-':
-		action = entities.ActionSubtract
-	default:
-		return "", 0, fmt.Errorf("message must start with '+' or '-'")
-	}
+	code := string(parts[0])
+	fmt.Println("code:", code)
 
-	// Extract amount (rest of the message after the first character)
-	amountStr := message[1:]
+	amountStr := string(parts[1])
 	amount, err := strconv.ParseFloat(amountStr, 64)
 	if err != nil {
-		return "", 0, fmt.Errorf("invalid amount format: %s", amountStr)
+		return "", 0, "", fmt.Errorf("invalid amount format: %s", amountStr)
 	}
+
+	description := parts[2]
 
 	if amount <= 0 {
-		return "", 0, fmt.Errorf("amount must be greater than 0")
+		return "", 0, "", fmt.Errorf("amount must be greater than 0")
 	}
 
-	return action, amount, nil
+	return code, amount, description, nil
 }
 
 // sendJSONResponse sends a JSON response

@@ -20,7 +20,7 @@ func NewTransactionUseCase(transactionRepo repository.TransactionRepository) *Tr
 }
 
 // ProcessTransaction processes a transaction request
-func (uc *TransactionUseCase) ProcessTransaction(phone string, action entities.Action, amount float64, notes string) (*entities.Transaction, error) {
+func (uc *TransactionUseCase) ProcessTransaction(phone string, action string, amount float64, description string) (*entities.Transaction, error) {
 	// Validate input
 	if phone == "" {
 		return nil, fmt.Errorf("phone number is required")
@@ -30,30 +30,8 @@ func (uc *TransactionUseCase) ProcessTransaction(phone string, action entities.A
 		return nil, fmt.Errorf("amount must be greater than 0")
 	}
 
-	if action != entities.ActionAdd && action != entities.ActionSubtract {
-		return nil, fmt.Errorf("invalid action: %s", action)
-	}
-
-	// Get current balance
-	currentBalance, err := uc.transactionRepo.GetBalance(phone)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get current balance: %w", err)
-	}
-
-	// Calculate new balance
-	var newBalance float64
-	switch action {
-	case entities.ActionAdd:
-		newBalance = currentBalance + amount
-	case entities.ActionSubtract:
-		newBalance = currentBalance - amount
-		if newBalance < 0 {
-			return nil, fmt.Errorf("insufficient balance: current balance is %.2f", currentBalance)
-		}
-	}
-
 	// Create transaction
-	transaction := entities.NewTransaction(phone, action, amount, newBalance, notes)
+	transaction := entities.NewTransaction(phone, action, amount, 0, description)
 
 	// Save transaction
 	if err := uc.transactionRepo.SaveTransaction(transaction); err != nil {
