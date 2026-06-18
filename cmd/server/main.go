@@ -41,11 +41,14 @@ func main() {
 	router := httptransport.NewRouter(transactionHandler)
 	mux := router.SetupRoutes()
 
+	// Wrap with logging middleware
+	loggedMux := httptransport.LoggingMiddleware(mux)
+
 	// Start server
 	addr := fmt.Sprintf(":%s", cfg.ServerPort)
 	log.Printf("Starting server on %s", addr)
 
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	if err := http.ListenAndServe(addr, loggedMux); err != nil {
 		log.Printf("Server failed to start: %v", err)
 	}
 }
