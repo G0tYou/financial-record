@@ -23,13 +23,14 @@ type Transaction struct {
 
 // NewTransaction creates a new transaction
 func NewTransaction(phone string, action string, amount float64, balance float64, notes string) *Transaction {
+	jakartaLoc, _ := time.LoadLocation("Asia/Jakarta")
 	return &Transaction{
 		ID:        generateID(),
 		Phone:     phone,
 		Action:    action,
 		Amount:    amount,
 		Balance:   balance,
-		Timestamp: time.Now().UTC(),
+		Timestamp: time.Now().In(jakartaLoc),
 		Notes:     notes,
 	}
 }
