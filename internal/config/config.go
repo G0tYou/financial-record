@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -18,10 +17,8 @@ type Config struct {
 
 // LoadConfig loads configuration from environment variables
 func LoadConfig() *Config {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Error loading .env file")
-	}
+	// Try to load .env file, but don't fail if it doesn't exist (common in production)
+	_ = godotenv.Load()
 	return &Config{
 		ServerPort:        getEnv("SERVER_PORT", "8080"),
 		GoogleCredentials: getEnv("GOOGLE_CREDENTIALS", ""),
