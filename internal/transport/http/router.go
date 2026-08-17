@@ -33,6 +33,16 @@ func (r *Router) SetupRoutes() *http.ServeMux {
 	// Transaction history endpoint
 	mux.HandleFunc("/api/history", r.handler.HandleGetHistory)
 
+	// Category endpoints
+	mux.HandleFunc("/api/categories", r.handler.HandleCategories)
+	mux.HandleFunc("/api/categories/create", r.handler.HandleCreateCategory)
+	mux.HandleFunc("/api/keywords", r.handler.HandleKeywords)
+	mux.HandleFunc("/api/keywords/create", r.handler.HandleCreateKeyword)
+
+	// Report endpoints
+	mux.HandleFunc("/api/reports/monthly", r.handler.HandleMonthlyReport)
+	mux.HandleFunc("/api/reports/send", r.handler.HandleSendReport)
+
 	// Health check endpoint
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

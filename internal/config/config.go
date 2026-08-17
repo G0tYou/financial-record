@@ -13,6 +13,7 @@ type Config struct {
 	GoogleCredentials string
 	SpreadsheetID     string
 	SheetName         string
+	DefaultPhone      string
 }
 
 // LoadConfig loads configuration from environment variables
@@ -25,6 +26,7 @@ func LoadConfig() *Config {
 		ServerPort:        getEnv("SERVER_PORT", "8080"),
 		GoogleCredentials: getEnv("GOOGLE_CREDENTIALS", ""),
 		SpreadsheetID:     getEnv("SPREADSHEET_ID", ""),
+		DefaultPhone:      getEnv("DEFAULT_PHONE", ""),
 	}
 }
 

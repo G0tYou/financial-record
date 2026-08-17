@@ -20,18 +20,45 @@ func NewTransactionUseCase(transactionRepo repository.TransactionRepository) *Tr
 }
 
 // ProcessTransaction processes a transaction request
-func (uc *TransactionUseCase) ProcessTransaction(phone string, action string, amount float64, description string) (*entities.Transaction, error) {
+func (uc *TransactionUseCase) ProcessTransaction(phone string, action string, amount float64, category string, description string) (*entities.Transaction, error) {
 	// Validate input
 	if phone == "" {
 		return nil, fmt.Errorf("phone number is required")
 	}
 
-	if amount <= 0 {
+	// Allow 0 amount for carry-over transactions
+	if amount <= 0 && action != "carry-over" {
 		return nil, fmt.Errorf("amount must be greater than 0")
 	}
 
-	// Create transaction
-	transaction := entities.NewTransaction(phone, action, amount, 0, description)
+	// Get current balance
+	currentBalance, err := uc.transactionRepo.GetBalance(phone)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get current balance: %w", err)
+	}
+
+	// If no balance in current month, try to get from previous month
+	if currentBalance == 0 {
+		previousMonthBalance, err := uc.transactionRepo.GetBalanceFromPreviousMonth(phone)
+		if err == nil && previousMonthBalance > 0 {
+			currentBalance = previousMonthBalance
+		}
+	}
+
+	// Calculate new balance based on action
+	var newBalance float64
+	if action == "add" {
+		newBalance = currentBalance + amount
+	} else if action == "subtract" {
+		newBalance = currentBalance - amount
+	} else if action == "carry-over" {
+		newBalance = amount // For carry-over, amount represents the carried balance
+	} else {
+		return nil, fmt.Errorf("invalid action: %s", action)
+	}
+
+	// Create transaction with calculated balance
+	transaction := entities.NewTransaction(phone, action, amount, newBalance, category, description)
 
 	// Save transaction
 	if err := uc.transactionRepo.SaveTransaction(transaction); err != nil {
@@ -47,7 +74,26 @@ func (uc *TransactionUseCase) GetBalance(phone string) (float64, error) {
 		return 0, fmt.Errorf("phone number is required")
 	}
 
-	return uc.transactionRepo.GetBalance(phone)
+	currentBalance, err := uc.transactionRepo.GetBalance(phone)
+	if err != nil {
+		return 0, err
+	}
+
+	// If no balance in current month, try to get from previous month and create carry-over transaction
+	if currentBalance == 0 {
+		previousMonthBalance, err := uc.transactionRepo.GetBalanceFromPreviousMonth(phone)
+		if err == nil && previousMonthBalance > 0 {
+			// Create a carry-over transaction to initialize the new month
+			carryOverTransaction := entities.NewTransaction(phone, "carry-over", 0, previousMonthBalance, "", "Balance carried over from previous month")
+			if err := uc.transactionRepo.SaveTransaction(carryOverTransaction); err != nil {
+				// If save fails, still return the previous month balance
+				return previousMonthBalance, nil
+			}
+			return previousMonthBalance, nil
+		}
+	}
+
+	return currentBalance, nil
 }
 
 // GetTransactionHistory retrieves transaction history for a phone number
