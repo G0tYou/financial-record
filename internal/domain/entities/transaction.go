@@ -28,7 +28,11 @@ type Transaction struct {
 
 // NewTransaction creates a new transaction
 func NewTransaction(phone string, action string, amount float64, balance float64, category string, notes string) *Transaction {
-	jakartaLoc, _ := time.LoadLocation("Asia/Jakarta")
+	jakartaLoc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		// Fallback to UTC if Jakarta timezone is not available
+		jakartaLoc = time.UTC
+	}
 	return &Transaction{
 		ID:        utils.GenerateID(),
 		Phone:     phone,
