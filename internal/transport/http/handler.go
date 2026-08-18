@@ -394,6 +394,61 @@ func (h *TransactionHandler) HandleSendReport(w http.ResponseWriter, r *http.Req
 	h.sendJSONResponse(w, http.StatusOK, response)
 }
 
+// HandleWebhookV2 handles the v2 webhook for balance adjustments
+func (h *TransactionHandler) HandleWebhookV2(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		h.sendJSONResponse(w, http.StatusOK, "OK")
+		return
+	}
+
+	var req FonteeWebhookRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.sendErrorResponse(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Parse message to extract action and amount
+	code, amount, description, err := h.parseMessage(req.Message)
+	if err != nil {
+		h.sendErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Normalize phone number
+	normalizedPhone := normalizePhoneNumber(req.Phone)
+
+	// Categorize the transaction based on description
+	category := "Other"
+	if h.categoryUseCase != nil {
+		categorizedCategory, categorizeErr := h.categoryUseCase.CategorizeTransaction(description)
+		if categorizeErr != nil {
+			log.Printf("Failed to categorize transaction: %v", categorizeErr)
+		} else {
+			category = categorizedCategory
+		}
+	}
+
+	// Process transaction with category
+	transaction, err := h.transactionUseCase.ProcessTransaction(normalizedPhone, code, amount, category, description)
+	if err != nil {
+		h.sendErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Send success response
+	response := TransactionResponse{
+		Success:   true,
+		Message:   "Success",
+		Phone:     normalizedPhone,
+		Action:    string(transaction.Action),
+		Amount:    transaction.Amount,
+		Balance:   transaction.Balance,
+		Timestamp: transaction.Timestamp.Format("2006-01-02 15:04:05"),
+	}
+
+	h.sendJSONResponse(w, http.StatusOK, response)
+}
+
 // parseMessage parses the WhatsApp message to extract action and amount
 func (h *TransactionHandler) parseMessage(message string) (string, float64, string, error) {
 	if len(message) == 0 {
@@ -461,16 +516,17 @@ func (h *TransactionHandler) sendErrorResponse(w http.ResponseWriter, statusCode
 }
 
 // normalizePhoneNumber normalizes phone number format
-// Converts "0..." to "+62..." format
+// Converts "0..." to "+62..." format, keeps +62... as is
 func normalizePhoneNumber(phone string) string {
-	// Remove any existing + prefix for consistency
-	phone = strings.TrimPrefix(phone, "+")
-
-	// If starts with "0", replace with "62"
+	// If starts with "0", replace with "62" (only first character)
 	if strings.HasPrefix(phone, "0") {
 		phone = "62" + phone[1:]
 	}
 
-	// Add + prefix
-	return "+" + phone
+	// If doesn't start with "+", add it
+	if !strings.HasPrefix(phone, "+") {
+		phone = "+" + phone
+	}
+
+	return phone
 }

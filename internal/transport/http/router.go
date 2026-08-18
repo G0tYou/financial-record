@@ -27,6 +27,9 @@ func (r *Router) SetupRoutes() *http.ServeMux {
 	// Webhook endpoint for Fontee
 	mux.HandleFunc("/api/webhook", r.handler.HandleWebhook)
 
+	// V2 webhook endpoint for balance adjustments
+	mux.HandleFunc("/v2/webhook", r.handler.HandleWebhookV2)
+
 	// Balance endpoint
 	mux.HandleFunc("/api/balance", r.handler.HandleGetBalance)
 
